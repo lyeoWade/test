@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+
+<head>
+    <meta charset="utf-8" />
+    <title>黑客帝国特效</title>
+    <style type="text/css">
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background: black;
+        }
+        
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- canvas标签定义图形，比如图表和其他图像 -->
+    <canvas id="c"></canvas>
+    <script type="text/javascript">
+        //获取canvas标签
+        var c = document.getElementById("c");
+        //getContext() 方法返回一个用于在画布上绘图的环境。
+        var ctx = c.getContext("2d");
+        //将绘图高度/宽度扩展到和屏幕相同
+        c.height = window.innerHeight;
+        c.width = window.innerWidth;
+
+        //准备要显示的字符串
+        // var chinese = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        var chinese = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        chinese = chinese.split("");
+
+        //要绘制的内容字体大小
+        var font_size = 20;
+        //要绘制的字体宽度
+        var columns = c.width/font_size;
+        
+        var drops = [];
+        for(var x = 0; x < columns; x++){
+            drops[x] = 1; 
+        }
+
+        function draw()
+        {   
+            //要绘制的填充颜色透明度
+            ctx.fillStyle = "rgba(0, 0, 0, 0.005)";
+            //绘制图形填充大小
+            ctx.fillRect(0, 0, c.width, c.height);
+
+            //字体颜色随机
+            // ctx.fillStyle = "#"+Math.floor(Math.random()*999999+100000); //green text
+            ctx.fillStyle = "green"; //green text
+            
+            ctx.font = font_size + "px arial";
+            //循环绘制文字
+            for(var i = 0; i < drops.length; i++)
+            {
+                //随机上方自定义的字符串内的内容;
+                var text = chinese[Math.floor(Math.random()*chinese.length)];
+                //绘制字体
+                ctx.fillText(text, i*font_size, drops[i]*font_size);
+                //如果字体大于绘制画板的高度重新绘制;
+                if(drops[i]*font_size > c.height && Math.random() > 0.975){
+                    drops[i].pop();
+                }
+                
+                drops[i]++;
+            }
+        }
+        //循环函数
+        setInterval(draw, 66);
+</script>
+</body>
+
+</html>
