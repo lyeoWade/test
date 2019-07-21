@@ -38,7 +38,8 @@
             <p class="progress-t">共振进度</p>
             <div class="progress">
               <div class="progress-box">
-                <van-progress color="#2ac4d2" :percentage="Number(resonanceArr.nowResonance/resonanceArr.resonance*100).toFixed(2)" />
+                <van-progress color="#2ac4d2" v-if="percentage"  :percentage="percentage" />
+                <!-- v-if="percentage" 防止出现Invalid prop: custom validator check failed for prop "percentage" 错误-->
               </div>
             </div>
           </div>
@@ -47,37 +48,43 @@
             <!-- <p class="progress-t"></p> -->
             <span>
               <i></i>
-              <input type="number" v-model="ResonanceNum" name="" value="3">
+              <input type="number" v-model="ResonanceNum" name="" value="">
             </span>
           </div>
 
           <div class="pay-wrap">
-            <p class="progress-t">余额:5.0000ETH</p>
+            <p class="progress-t">余额:<van-loading size="12px" color="#2ac4d2" v-show="isShowETHInfo" vertical />{{ETHArr.balance}}ETH</p>
             <button @click="payNow">立即支付ETH</button>
           </div>
           <div class="balance">
-            <p>余额：10000ETXs</p>
+            <p>余额：<van-loading size="12px" color="#2ac4d2" v-show="isShowETHInfo" vertical />{{ETXSArr.balance}}ETXs</p>
           </div>
         </div>
+
+        <!-- 邀请 -->
         <div class="invitation com">
           <h3>邀请链接</h3>
           <div class="invitation-content">
             <div class="invitation-bg">
               <p>我的专属邀请码</p>
               <div class="invitation-code">
+                <!-- {{invitationCode}} -->
+                <span v-for="(itemCode,i) in invitationCode" :key="i">{{itemCode}}</span>
+                <div ref="invitationCodeHide">{{userInfo.data.invitationCode}}</div>
+                <!-- <span>8</span>
                 <span>8</span>
                 <span>8</span>
                 <span>8</span>
-                <span>8</span>
-                <span>8</span>
-                <span>8</span>
+                <span>8</span> -->
               </div>
               <div class="invitation-share">
-                <a href="">复制邀请链接</a>
+                <a href="javascript:;" @click="copyInvitationCode">复制邀请链接</a>
               </div>
             </div>
           </div>
         </div>
+
+
 
         <div class="mining com">
           <h3>移动挖矿</h3>
@@ -107,20 +114,20 @@
             
 
 
-            <div class="mining-list" v-for="(item,i) in miningDatas" :key="item.id">
+            <div class="mining-list" v-for="(item,i) in listOfRevenueProductsArr" :key="item.id">
               <van-row type="flex">
                 <van-col span="8">
-                  <p class="f-top">{{item.percent}}</p>
-                  <span class="f-time">{{item.day}}</span>
+                  <p class="f-top">{{item.profit}}%</p>
+                  <span class="f-time">产矿量/日</span>
                 </van-col>
                 <van-col span="9">
-                  <p class="pay-top">{{item.day}}</p>
-                  <span class="pay-num">{{item.money}}EtxS</span>
+                  <p class="pay-top">{{item.maxDay}}天</p>
+                  <span class="pay-num">{{item.startNum}}EtxS</span>
                 </van-col>
               </van-row>
 
               <div class="star-mining"> 
-                <a href="javascript:;" @click="changeInto(item.money)">立即转入</a>
+                <a href="javascript:;" @click="changeInto(item.startNum)">立即转入</a>
               </div>
             </div>
             
@@ -324,7 +331,7 @@
             <h2 class="layer-title">友情提示<i @click="closeLayer"></i></h2>
             <div class="layer-content">
              <p class="no-out">抱歉，暂未开放</p>
-             <p class="backBtn"><a href="javascript:;">我知道了</a></p>
+             <p class="backBtn"><a @click="closeLayer" href="javascript:;">我知道了</a></p>
             </div>
           </div>
           
@@ -371,12 +378,15 @@
             <h2 class="layer-title">共振<i @click="closeLayer"></i></h2>
             <div class="layer-content gzwrap">
               <p>ETH</p>
-              <p><img :src="payCode"></p>
-             <p class="payCode" ref="copycontent">0xashkgka1823ahdahkg3djoj3456543ajhnkig</p>
+              
+				<van-loading size="38px" color="#2ac4d2" v-show="isShowETHInfo" vertical />
+                <p><img :src="ETHArr.qrCode"></p>
+                
+             <p class="payCode" ref="copycontent">{{ETHArr.address}}</p>
              <p class="copyAddress"><a href="javascript:;" @click="copyAddressFn()">复制地址</a></p>
             </div>
           </div>
-
+					
           <!-- 共识 -->
           <div v-show="isConsensus">
             <h2 class="layer-title">我的共识<i @click="closeLayer"></i></h2>
@@ -472,7 +482,7 @@
         </div>
       </div>
 
-
+      
   </div>
 </template>
 
@@ -489,11 +499,13 @@ import { Notify } from 'vant';
 import axios from 'axios'
 import qss from './../../../node_modules/qs/dist/qs'
 
+
+//引入Vuex 
+
 Vue.use(Notify);
 import { Progress } from 'vant';
 
 Vue.use(Progress);
-
 
 var miningListDatas=[
     {id:1,ccTime:"2019-12-12",money:"8000ETXS",yestoday:"0ETXS",status:"0/365"},
@@ -503,16 +515,7 @@ var miningListDatas=[
     {id:5,ccTime:"2019-12-12",money:"4000ETXS",yestoday:"0ETXS",status:"65/365"},
     {id:6,ccTime:"2019-12-12",money:"3000ETXS",yestoday:"0ETXS",status:"0/365"},
 ]
-// 支付弹窗的二维码
 
-
-let miningDatas=[
-  {id:1,percent:'2%',day:'前100天',money:'50000'},
-  {id:2,percent:'4%',day:'前102天',money:'54643'},
-  {id:3,percent:'2%',day:'前10天',money:'232'},
-  {id:4,percent:'3%',day:'前80天',money:'50000'},
-  {id:5,percent:'3%',day:'前800天',money:'5446444'},
-]
 import payCode from '../../../static/images/pay.png';
 
 export default {
@@ -532,11 +535,24 @@ export default {
       isstarMining:false,
       miningListDatas:miningListDatas,
       payCode:payCode,
-      miningDatas:miningDatas,
       InMoney:0,
       userInfo:JSON.parse(window.localStorage.getItem("userInfo")),
-      resonanceArr:[]
+      resonanceArr:[],
+      ETHArr:[],
+      ETXSArr:[],
+	    isShowETHInfo:true,
+      listOfRevenueProductsArr:[],
+      // invitationCode:userInfo.data.invitationCode
     }
+  },
+  computed:{
+    percentage:function(){
+      return +Number(this.resonanceArr.nowResonance/this.resonanceArr.resonance*100).toFixed(2);
+    },
+    invitationCode:function(){
+      return this.userInfo.data.invitationCode.split('');
+    }
+    
   },
   watch:{
   },
@@ -553,6 +569,51 @@ export default {
     },
     Consensus(){
       //alert(123)
+      ///etxs/myteam  我的共识
+      
+      // let datas = qss.stringify({ 
+      //   token : this.userInfo.data.token, 
+      //   username : this.userInfo.data.userName,
+      //   type:"TEAM",
+      //   page:1
+      // });
+      //myManagerMoney  我的理财
+      ///etxs/myProList  
+     
+
+     /* let datas = qss.stringify({ 
+        token : this.userInfo.data.token, 
+        username : this.userInfo.data.userName,
+        num:"2",
+        numberPperiods:1,
+        password:'zxcvbnm3'
+      });*/
+      ////etxs/playResonanceQuota参与共振
+       let datas = qss.stringify({ 
+        token : this.userInfo.data.token, 
+        username : this.userInfo.data.userName
+      });
+      ////etxs/revenueAndCashWithdrawal  收益及提现  好像是累计挖矿
+      ///
+      axios.post('/etxs/revenueAndCashWithdrawal', datas)
+      .then( str =>{
+        console.log(str.data)
+        if(str.data.code==100){
+            //this.resonanceArr=str.data.data.use;
+
+            // console.log(this.resonanceArr)
+        }else{
+            Notify({
+              message: str.data.message,
+              duration: 1000,
+              background: '#2ac4d2'
+            });
+        }
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+
       this.isShow=true;
       this.isConsensus=true;
     },
@@ -570,11 +631,16 @@ export default {
 
       const range = document.createRange();
       range.selectNode(this.$refs.copycontent);
+
       const selection = window.getSelection();
       if(selection.rangeCount > 0) selection.removeAllRanges();
       selection.addRange(range);
       document.execCommand('copy');
-      alert("复制成功！");
+      Notify({
+        message: "复制成功",
+        duration: 1000,
+        background: '#2ac4d2'
+      });
     },
     EcoPlan(){
 
@@ -589,7 +655,15 @@ export default {
           duration: 1000,
           background: '#2ac4d2'
         });
+        return false;
+      }
 
+      if(this.ResonanceNum>this.ETHArr.balance){
+        Notify({
+          message: "您的余额不足，请点击右上方'共振'充值",
+          duration: 3000,
+          background: '#2ac4d2'
+        });
         return false;
       }
 
@@ -597,7 +671,7 @@ export default {
       this.ispayNow=true;
     },
     changeInto(val){
-      console.log(val)
+      //console.log(val)
       this.InMoney=val+"ETXS";
       this.isShow=true;
       this.ischangeInto=true;
@@ -618,11 +692,11 @@ export default {
      // return false;
       axios.post('/etxs/getResonanceQuotaInfo', datas)
       .then( str =>{
-        console.log(str.data)
+        //console.log(str.data)
         if(str.data.code==100){
             this.resonanceArr=str.data.data.use;
 
-            console.log(this.resonanceArr)
+           // console.log(this.resonanceArr)
         }else{
             Notify({
               message: str.data.message,
@@ -635,7 +709,77 @@ export default {
         console.log(error);
       });
 
+    },
+    getFlushCoin(){
+       let datas = qss.stringify({ 
+        token : this.userInfo.data.token, 
+        username : this.userInfo.data.userName
+      });
+      axios.post('/etxs/flushCoin', datas)
+      .then( str =>{
+        //console.log(str.data)
+        if(str.data.code==100){
+			this.isShowETHInfo=false;
+          this.ETHArr=str.data.data[0];
+          this.ETXSArr=str.data.data[1];
+           // this.resonanceArr=str.data.data.use;
+          // console.log(this.ETHArr)
+        }else{
+            Notify({
+              message: str.data.message,
+              duration: 1000,
+              background: '#2ac4d2'
+            });
+        }
+      })
+      .catch(function (error) {
+        console.log(error);
+      });
+    },
+	  getlistOfRevenueProducts(){ //获取储存列表
+  		let datas = qss.stringify({ 
+  		  token : this.userInfo.data.token, 
+  		  username : this.userInfo.data.userName
+  		});
+  		axios.post('/etxs/listOfRevenueProducts', datas)
+  		.then( str =>{
+  		  //console.log(str.data.data)
+  		  if(str.data.code==100){
+  					this.listOfRevenueProductsArr=str.data.data;
+  		  }else{
+  		      Notify({
+  		        message: str.data.message,
+  		        duration: 1000,
+  		        background: '#2ac4d2'
+  		      });
+  		  }
+  		})
+  		.catch(function (error) {
+  		  console.log(error);
+  		});
+	  },
+        //复制邀请码
+    copyInvitationCode(){
+
+
+      const range = document.createRange();
+
+      range.selectNode(this.$refs.invitationCodeHide);
+      const selection = window.getSelection();
+      if(selection.rangeCount > 0) {
+        selection.removeAllRanges();
+      }
+      selection.addRange(range);
+      document.execCommand('copy');
+
+
+      Notify({
+        message: "复制成功",
+        duration: 1000,
+        background: '#2ac4d2'
+      });
     }
+
   },
   components: {
 
@@ -658,13 +802,23 @@ export default {
     }
 
    // console.log(this.userInfo.data.token)
+    //获取共振计划
     this.getResonanceQuotaInfo();
 
+    //获取币种
+    this.getFlushCoin();
+  	//获取储存列表
+  	this.getlistOfRevenueProducts();
+
+
+    
   }
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped="">
-
+.van-loading--vertical{
+	display: inline;;
+}
 </style>

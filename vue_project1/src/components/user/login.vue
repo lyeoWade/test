@@ -147,7 +147,6 @@ export default {
               duration: 1000,
               background: '#2ac4d2'
             });
-            history.go(0)
         }
       })
       .catch(function (error) {
